@@ -1,0 +1,24 @@
+# Configuracao minima para o Supabase CLI (uso local opcional: `supabase start`).
+# Nada aqui cria ou altera um projeto na nuvem.
+project_id = "rocha-executive-booking"
+
+[api]
+enabled = true
+schemas = ["public"]
+
+[db]
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+# O painel admin usa autenticacao propria (cookie HttpOnly + MFA) e NAO usa o
+# Supabase Auth; o cadastro publico fica desligado.
+enabled = false
+enable_signup = false
+
+[storage]
+enabled = true
+file_size_limit = "5MiB"

@@ -1,0 +1,35 @@
+*.zip
+# =============================================================================
+# Segredos e ambiente — NUNCA versionar
+# =============================================================================
+.env
+.env.local
+.env*.local
+!.env.example
+
+# =============================================================================
+# Frontend (Next.js)
+# =============================================================================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.data/
+frontend/public/uploads/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/npm-debug.log*
+
+# =============================================================================
+# Backend Python legado (nao usado em producao — ver backend/LEGADO.md)
+# =============================================================================
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.venv/
+backend/*.db
+backend/*.sqlite3
+
+# =============================================================================
+# Sistema operacional / editor
+# =============================================================================
+.DS_Store
+*.pem
