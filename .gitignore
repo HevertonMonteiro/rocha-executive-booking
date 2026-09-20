@@ -33,3 +33,6 @@ backend/*.sqlite3
 # =============================================================================
 .DS_Store
 *.pem
+
+# Metadados internos de ferramentas (nao faz parte do projeto)
+.claude/
