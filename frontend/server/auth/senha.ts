@@ -6,7 +6,8 @@ const N = 2 ** 14;
 const R = 8;
 const P = 5;
 const TAMANHO = 64;
-export const SENHA_MIN = 12;
+export const SENHA_MIN = 8;
+export const SENHA_MAX = 16;
 
 function derivar(senha: string, salt: Buffer, n: number, r: number, p: number): Promise<Buffer> {
   return new Promise((resolve, reject) =>
@@ -17,7 +18,9 @@ function derivar(senha: string, salt: Buffer, n: number, r: number, p: number): 
 }
 
 export function validarForcaSenha(senha: string): string | null {
-  if (senha.length < SENHA_MIN) return `A senha deve ter pelo menos ${SENHA_MIN} caracteres.`;
+  if (senha.length < SENHA_MIN || senha.length > SENHA_MAX) {
+    return `A senha deve ter entre ${SENHA_MIN} e ${SENHA_MAX} caracteres.`;
+  }
   const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(senha)).length;
   if (classes < 3) return "Use letras maiusculas, minusculas, numeros e/ou simbolos (pelo menos 3 tipos).";
   return null;

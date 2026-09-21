@@ -12,7 +12,7 @@ export const POST = comAdmin(
     await limitar(`senha:${admin.id}`, 5, 900);
     const { senha_atual, nova_senha } = await lerCorpo(
       req,
-      z.object({ senha_atual: z.string().min(1).max(200), nova_senha: z.string().max(200) })
+      z.object({ senha_atual: z.string().min(1).max(200), nova_senha: z.string().max(16) })
     );
     const [a] = await consulta<{ senha_hash: string }>("select senha_hash from admins where id = $1", [admin.id]);
     if (!(await verificarSenha(senha_atual, a.senha_hash))) throw new ErroHttp(401, "Senha atual incorreta.");

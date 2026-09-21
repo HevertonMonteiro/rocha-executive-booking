@@ -133,8 +133,8 @@ function AlterarSenha() {
       <form onSubmit={salvar} className="space-y-3">
         <div className="grid sm:grid-cols-3 gap-3">
           <Campo rotulo="Senha atual"><input type="password" required className={inputCls} value={atual} onChange={(e) => setAtual(e.target.value)} autoComplete="current-password" /></Campo>
-          <Campo rotulo="Nova senha" dica="Mínimo 12 caracteres, misturando 3 tipos (maiúsculas, minúsculas, números, símbolos)."><input type="password" required minLength={12} className={inputCls} value={nova} onChange={(e) => setNova(e.target.value)} autoComplete="new-password" /></Campo>
-          <Campo rotulo="Repita a nova senha"><input type="password" required className={inputCls} value={confirma} onChange={(e) => setConfirma(e.target.value)} autoComplete="new-password" /></Campo>
+          <Campo rotulo="Nova senha" dica="Entre 8 e 16 caracteres, misturando 3 tipos (maiúsculas, minúsculas, números, símbolos)."><input type="password" required minLength={8} maxLength={16} className={inputCls} value={nova} onChange={(e) => setNova(e.target.value)} autoComplete="new-password" /></Campo>
+          <Campo rotulo="Repita a nova senha"><input type="password" required maxLength={16} className={inputCls} value={confirma} onChange={(e) => setConfirma(e.target.value)} autoComplete="new-password" /></Campo>
         </div>
         {msg && <Alerta tipo={msg.tipo}>{msg.texto}</Alerta>}
         <div className="flex justify-end"><Botao type="submit" disabled={ocupado}>Alterar senha</Botao></div>
