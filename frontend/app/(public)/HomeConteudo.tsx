@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AutocompleteCidade, { Cidade } from "@/components/AutocompleteCidade";
+import OrcamentoModal from "@/components/OrcamentoModal";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { linkRotaRapida } from "@/lib/rotas";
 import type { DestinoPopular } from "@/lib/SiteConfig";
@@ -26,25 +27,35 @@ export default function HomeConteudo({ destinos }: { destinos: DestinoPopular[] 
   const router = useRouter();
   const { formatarPreco, t } = usePreferences();
   const [origem, setOrigem] = useState<Cidade | null>(null);
+  const [origemTexto, setOrigemTexto] = useState("");
   const [destino, setDestino] = useState<Cidade | null>(null);
+  const [destinoTexto, setDestinoTexto] = useState("");
   const [dataIda, setDataIda] = useState("");
   const [idaVolta, setIdaVolta] = useState(false);
   const [dataVolta, setDataVolta] = useState("");
   const [passageiros, setPassageiros] = useState(1);
+  const [orcamentoAberto, setOrcamentoAberto] = useState(false);
 
-  const valido = origem && destino && dataIda && (!idaVolta || dataVolta);
+  // Preco automatico so existe para cidades cadastradas; qualquer lado digitado
+  // livremente (fora da lista) vira pedido de orcamento manual.
+  const localizacoesCadastradas = Boolean(origem && destino);
+  const valido = origemTexto.trim() && destinoTexto.trim() && dataIda && (!idaVolta || dataVolta);
 
   function buscar() {
     if (!valido) return;
-    const params = new URLSearchParams({
-      origem_id: String(origem!.id),
-      destino_id: String(destino!.id),
-      data_ida: dataIda,
-      tipo_trajeto: idaVolta ? "return" : "one_way",
-      passageiros: String(passageiros),
-    });
-    if (idaVolta) params.set("data_volta", dataVolta);
-    router.push(`/selecao?${params.toString()}`);
+    if (localizacoesCadastradas) {
+      const params = new URLSearchParams({
+        origem_id: String(origem!.id),
+        destino_id: String(destino!.id),
+        data_ida: dataIda,
+        tipo_trajeto: idaVolta ? "return" : "one_way",
+        passageiros: String(passageiros),
+      });
+      if (idaVolta) params.set("data_volta", dataVolta);
+      router.push(`/selecao?${params.toString()}`);
+      return;
+    }
+    setOrcamentoAberto(true);
   }
 
   function explorarDestino(origemId: number, destinoId: number) {
@@ -118,6 +129,7 @@ export default function HomeConteudo({ destinos }: { destinos: DestinoPopular[] 
                   placeholder={t("departurePlaceholder")}
                   icon="origin"
                   onSelect={setOrigem}
+                  onChangeTexto={setOrigemTexto}
                 />
               </div>
 
@@ -127,6 +139,7 @@ export default function HomeConteudo({ destinos }: { destinos: DestinoPopular[] 
                   placeholder={t("destinationPlaceholder")}
                   icon="destination"
                   onSelect={setDestino}
+                  onChangeTexto={setDestinoTexto}
                 />
               </div>
             </div>
@@ -208,11 +221,27 @@ export default function HomeConteudo({ destinos }: { destinos: DestinoPopular[] 
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              {t("searchButton")}
+              {localizacoesCadastradas ? t("searchButton") : t("quoteButton")}
             </button>
           </div>
         </div>
       </section>
+
+      {orcamentoAberto && (
+        <OrcamentoModal
+          dados={{
+            origem_id: origem?.id ?? null,
+            origem_texto: origemTexto.trim(),
+            destino_id: destino?.id ?? null,
+            destino_texto: destinoTexto.trim(),
+            tipo_trajeto: idaVolta ? "return" : "one_way",
+            data_ida: dataIda,
+            data_volta: idaVolta ? dataVolta : null,
+            quantidade_passageiros: passageiros,
+          }}
+          onFechar={() => setOrcamentoAberto(false)}
+        />
+      )}
 
       {/* Trust & Guarantee Badges (Estilo Connecto) */}
       <section id="beneficios" className="scroll-mt-20 py-12 bg-white border-b border-slate-200">

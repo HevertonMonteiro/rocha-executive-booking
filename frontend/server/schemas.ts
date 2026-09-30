@@ -58,6 +58,36 @@ export const schemaCheckout = z.object({
   opcao: z.enum(["sinal", "integral"]).default("integral"),
 });
 
+// Pedido de orcamento: origem e/ou destino nao cadastrados, sem preco automatico.
+export const schemaSolicitacaoOrcamento = z
+  .object({
+    origem_id: z.number().int().positive().optional().nullable(),
+    origem_texto: texto(1, 200),
+    destino_id: z.number().int().positive().optional().nullable(),
+    destino_texto: texto(1, 200),
+    tipo_trajeto: z.enum(["one_way", "return"]).default("one_way"),
+    data_ida: dataHora,
+    data_volta: dataHora.optional().nullable(),
+    quantidade_passageiros: z.number().int().min(1).max(20).default(1),
+    cliente_nome: texto(2, 100),
+    cliente_telefone: texto(8, 20),
+    cliente_email: z.string().trim().toLowerCase().email().max(100).optional().nullable(),
+    observacoes: opcional(2000),
+    // Campo isca (honeypot): invisivel para pessoas, preenchido por robos.
+    contato_extra: z.string().optional().nullable(),
+  })
+  .superRefine((d, ctx) => {
+    if (d.tipo_trajeto === "return" && !d.data_volta)
+      ctx.addIssue({ code: "custom", path: ["data_volta"], message: "data_volta e obrigatoria para ida e volta." });
+    if (d.data_volta && d.data_volta <= d.data_ida)
+      ctx.addIssue({ code: "custom", path: ["data_volta"], message: "data_volta deve ser posterior a data_ida." });
+  });
+
+export const schemaAtualizarOrcamento = z.object({
+  status: z.enum(["pendente", "respondido", "descartado"]).optional(),
+  notas_internas: opcional(4000),
+});
+
 export const schemaConsultaRotas = z.object({
   origem_id: z.coerce.number().int().positive(),
   destino_id: z.coerce.number().int().positive(),

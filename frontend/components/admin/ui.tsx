@@ -65,6 +65,12 @@ export const STATUS_PAGAMENTO: Record<string, { rotulo: string; cor: string }> =
   pago: { rotulo: "Pago", cor: "verde" },
 };
 
+export const STATUS_ORCAMENTO: Record<string, { rotulo: string; cor: string }> = {
+  pendente: { rotulo: "Pendente", cor: "amarelo" },
+  respondido: { rotulo: "Respondido", cor: "verde" },
+  descartado: { rotulo: "Descartado", cor: "cinza" },
+};
+
 export const STATUS_PARCEIRO: Record<string, { rotulo: string; cor: string }> = {
   pendente: { rotulo: "Aguardando análise", cor: "amarelo" },
   aprovado: { rotulo: "Aprovado", cor: "verde" },

@@ -16,6 +16,8 @@ interface Props {
   placeholder?: string;
   icon?: "origin" | "destination";
   onSelect: (cidade: Cidade | null) => void;
+  /** Texto digitado a cada tecla, mesmo sem bater com nenhuma cidade cadastrada. */
+  onChangeTexto?: (texto: string) => void;
 }
 
 export default function AutocompleteCidade({
@@ -23,6 +25,7 @@ export default function AutocompleteCidade({
   placeholder = "Digite o aeroporto, cidade ou estação...",
   icon = "origin",
   onSelect,
+  onChangeTexto,
 }: Props) {
   const [termo, setTermo] = useState("");
   const [resultados, setResultados] = useState<Cidade[]>([]);
@@ -60,10 +63,12 @@ export default function AutocompleteCidade({
     setTermo(cidade.nome);
     setAberto(false);
     onSelect(cidade);
+    onChangeTexto?.(cidade.nome);
   }
 
   function aoDigitar(valor: string) {
     setTermo(valor);
+    onChangeTexto?.(valor);
     if (selecionada) {
       setSelecionada(null);
       onSelect(null);
@@ -74,6 +79,7 @@ export default function AutocompleteCidade({
     setTermo("");
     setSelecionada(null);
     onSelect(null);
+    onChangeTexto?.("");
     setResultados([]);
   }
 

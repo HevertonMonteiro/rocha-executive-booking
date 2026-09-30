@@ -20,6 +20,7 @@ const MENU: { grupo: string; itens: { href: string; rotulo: string; icone: strin
     itens: [
       { href: "/admin", rotulo: "Painel", icone: "M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" },
       { href: "/admin/reservas", rotulo: "Reservas", icone: "M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" },
+      { href: "/admin/orcamentos", rotulo: "Orçamentos", icone: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.4-4 8-9 8-1.2 0-2.3-.2-3.3-.6L3 21l1.7-4.2A7.9 7.9 0 013 12c0-4.4 4-8 9-8s9 3.6 9 8z" },
       { href: "/admin/clientes", rotulo: "Clientes", icone: "M17 20h5v-2a3 3 0 00-5.4-1.9M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.9M7 20H2v-2a3 3 0 015.4-1.9M7 20v-2c0-.7.1-1.3.4-1.9m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
       { href: "/admin/parceiros", rotulo: "Parceiros", icone: "M12 4.3a4 4 0 110 5.4M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.2M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
       { href: "/admin/financeiro", rotulo: "Financeiro", icone: "M12 8c-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2m0-8c1.1 0 2.1.4 2.6 1M12 8V7m0 1v8m0 0v1m0-1c-1.1 0-2.1-.4-2.6-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
