@@ -1,19 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { useSiteConfig } from "@/lib/SiteConfig";
 
+const CAMPOS = "input, textarea, select";
 
 export default function FloatingWhatsApp() {
   const { t } = usePreferences();
   const { whatsappLink } = useSiteConfig();
+  // No mobile o botao fica no canto inferior esquerdo, onde formularios costumam
+  // comecar: sem isso ele tampa o campo enquanto o usuario digita (ex.: checkout).
+  const [ofuscadoPorCampo, setOfuscadoPorCampo] = useState(false);
+
+  useEffect(() => {
+    function aoFocar(e: FocusEvent) {
+      if ((e.target as HTMLElement)?.closest?.(CAMPOS)) setOfuscadoPorCampo(true);
+    }
+    function aoDesfocar(e: FocusEvent) {
+      if ((e.target as HTMLElement)?.closest?.(CAMPOS)) setOfuscadoPorCampo(false);
+    }
+    document.addEventListener("focusin", aoFocar);
+    document.addEventListener("focusout", aoDesfocar);
+    return () => {
+      document.removeEventListener("focusin", aoFocar);
+      document.removeEventListener("focusout", aoDesfocar);
+    };
+  }, []);
 
   return (
     <a
       href={whatsappLink}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 left-6 z-50 flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 px-4 rounded-full shadow-2xl hover:scale-105 transition duration-200 border-2 border-white/20"
+      className={`fixed bottom-6 left-6 z-50 flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 px-4 rounded-full shadow-2xl hover:scale-105 transition duration-200 border-2 border-white/20 ${
+        ofuscadoPorCampo ? "opacity-0 pointer-events-none" : "opacity-100"
+      }`}
       aria-label="Atendimento WhatsApp"
     >
       <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">

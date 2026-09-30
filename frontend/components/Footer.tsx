@@ -19,7 +19,9 @@ export default function Footer() {
   );
 
   return (
-    <footer className="bg-navy-950 text-slate-400 border-t border-navy-800 mt-20 pt-14 pb-8">
+    // pb maior no mobile: o botao flutuante do WhatsApp fica fixo embaixo a
+    // esquerda e cobriria o link "Devenir partenaire" sem esse respiro extra.
+    <footer className="bg-navy-950 text-slate-400 border-t border-navy-800 mt-20 pt-14 pb-24 sm:pb-8">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="md:col-span-1">
