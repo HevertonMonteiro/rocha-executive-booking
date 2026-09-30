@@ -56,7 +56,7 @@ async function abrirPglite(url: string): Promise<Banco> {
 
 async function abrirPostgres(url: string): Promise<Banco> {
   const postgres = (await import("postgres")).default;
-  const sql = postgres(url, {
+  const opcoes = {
     // Pooler da Supabase em modo transacao nao suporta prepared statements.
     prepare: false,
     max: 3, // funcoes serverless: poucas conexoes por instancia
@@ -72,16 +72,45 @@ async function abrirPostgres(url: string): Promise<Banco> {
         parse: (v: string) => v,
       },
     },
-  });
-  const executor = (alvo: any): Executor => ({
-    query: async (texto, params = []) => (await alvo.unsafe(texto, params as any[])) as any,
-    exec: async (texto) => {
-      await alvo.unsafe(texto);
+  } as const;
+  let sql = postgres(url, opcoes);
+
+  // Funcoes serverless "congelam" entre invocacoes: uma conexao ja aberta pode
+  // ficar presa nesse intervalo (o socket parece vivo, mas nunca mais responde)
+  // sem que o driver perceba. Sem isto, uma consulta trava ate o gateway
+  // desistir (dezenas de segundos). Aqui, apos 6s sem resposta, a conexao
+  // suspeita e descartada; para SELECT (sempre seguro repetir) tenta de novo
+  // numa conexao nova; para escrita, so falha rapido (nunca reenvia
+  // automaticamente, para nao arriscar duplicar uma cobranca ou reserva).
+  async function comLimiteDeTempo<T>(executar: () => Promise<T>, podeTentarDeNovo: boolean): Promise<T> {
+    try {
+      return await Promise.race([
+        executar(),
+        new Promise<never>((_, rejeitar) => setTimeout(() => rejeitar(new Error("TIMEOUT_CONEXAO_BD")), 6000)),
+      ]);
+    } catch (e) {
+      if (!(e instanceof Error) || e.message !== "TIMEOUT_CONEXAO_BD") throw e;
+      sql.end({ timeout: 0 }).catch(() => {});
+      sql = postgres(url, opcoes);
+      if (!podeTentarDeNovo) throw e;
+      return executar();
+    }
+  }
+
+  const executor = (alvo: () => any): Executor => ({
+    query: (texto, params = []) => {
+      const somenteLeitura = /^\s*(select|with)\b/i.test(texto);
+      return comLimiteDeTempo(() => alvo().unsafe(texto, params as any[]), somenteLeitura);
     },
+    exec: (texto) => comLimiteDeTempo(async () => void (await alvo().unsafe(texto)), false),
   });
   return {
-    ...executor(sql),
-    transaction: (fn) => sql.begin((tx) => fn(executor(tx))) as Promise<any>,
+    ...executor(() => sql),
+    // Transacao nao usa o limite de tempo acima: cancelar uma promise em voo nao
+    // cancela o COMMIT em andamento no servidor, e um "timeout" falso-positivo
+    // poderia derrubar a conexao e avisar erro numa transacao que na verdade
+    // teve sucesso — risco inaceitavel perto de pagamento/reserva.
+    transaction: (fn) => sql.begin((tx) => fn(executor(() => tx))) as Promise<any>,
     close: () => sql.end({ timeout: 5 }),
   };
 }
