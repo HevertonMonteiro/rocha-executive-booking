@@ -12,6 +12,27 @@ h1, h2, h3, h4, .font-heading {
   font-family: var(--font-heading), var(--font-inter), sans-serif;
 }
 
+/* iOS Safari da largura minima intrinseca aos inputs de data/hora, fazendo-os
+   estourar o container no mobile. Forca-os a respeitar a largura do pai. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.75rem;
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="month"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* Custom transitions and scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
