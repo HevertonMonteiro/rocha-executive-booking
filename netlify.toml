@@ -6,15 +6,18 @@
 [build]
   base = "frontend"
   command = "npm run build"
+  # Precisa ser diferente de `base` (a Netlify valida isso), mas quem manda no
+  # resultado final e o plugin abaixo — ele intercepta o build e publica o
+  # runtime completo do Next.js (paginas dinamicas, API, middleware), nao o
+  # conteudo estatico bruto desta pasta.
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
   NEXT_TELEMETRY_DISABLED = "1"
 
 # Runtime oficial do Next.js na Netlify: sem isso, paginas dinamicas e rotas de
-# API (tudo que nao e estatico) respondem 404, pois a Netlify serviria o
-# conteudo de `.next` como arquivos estaticos em vez de rodar o servidor Next.
-# Nao definir `publish` manualmente: este plugin controla o diretorio de saida.
+# API (tudo que nao e estatico) respondem 404.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
