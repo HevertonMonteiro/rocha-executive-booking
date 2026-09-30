@@ -33,6 +33,21 @@ input[type="month"]::-webkit-date-and-time-value {
   text-align: left;
 }
 
+/* Sem zoom por toque duplo (mantem o zoom de pinca, por acessibilidade). */
+html {
+  touch-action: manipulation;
+}
+
+/* iOS Safari da zoom automatico ao focar campos com fonte < 16px, e o zoom
+   continua na tela seguinte. No mobile, forca 16px nos campos. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom transitions and scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

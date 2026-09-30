@@ -47,6 +47,8 @@ export default function HomeConteudo({ destinos }: { destinos: DestinoPopular[] 
       const params = new URLSearchParams({
         origem_id: String(origem!.id),
         destino_id: String(destino!.id),
+        origem_nome: origem!.nome,
+        destino_nome: destino!.nome,
         data_ida: dataIda,
         tipo_trajeto: idaVolta ? "return" : "one_way",
         passageiros: String(passageiros),

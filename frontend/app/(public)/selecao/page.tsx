@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { dataViagemLocal, mensagemCliente } from "@/lib/i18n";
+import OrcamentoModal from "@/components/OrcamentoModal";
 
 interface Rota {
   id: number;
@@ -41,6 +42,10 @@ function SelecaoContent() {
   const [dataIda, setDataIda] = useState(params.get("data_ida") || "");
   const [dataVolta, setDataVolta] = useState(params.get("data_volta") || "");
   const [passageiros, setPassageiros] = useState(Number(params.get("passageiros")) || 1);
+  const [orcamentoAberto, setOrcamentoAberto] = useState(false);
+  // Cidades cadastradas mas sem rota/preco entre elas: em vez de beco sem
+  // saida, oferece o mesmo pedido de orcamento manual da home.
+  const semRota = (erroApi as { response?: { data?: { codigo?: string } } })?.response?.data?.codigo === "SEM_ROTA";
 
   useEffect(() => {
     setCarregando(true);
@@ -265,14 +270,42 @@ function SelecaoContent() {
           <div className="py-16 text-center bg-white rounded-2xl border border-red-200 p-8 shadow-sm">
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 text-xl">✕</div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">{t("selNoRouteTitle")}</h3>
-            <p className="text-sm text-slate-500 mb-6">{mensagemCliente(erroApi, t, idioma.langKey)}</p>
-            <button
-              onClick={() => router.push("/")}
-              className="px-6 py-2.5 rounded-xl bg-navy-950 text-white font-bold text-sm hover:bg-slate-800 transition"
-            >
-              {t("selBackToSearch")}
-            </button>
+            <p className="text-sm text-slate-500 mb-6">
+              {semRota ? t("quoteModalIntro") : mensagemCliente(erroApi, t, idioma.langKey)}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              {semRota && (
+                <button
+                  onClick={() => setOrcamentoAberto(true)}
+                  className="px-6 py-2.5 rounded-xl bg-gold-500 text-navy-950 font-bold text-sm hover:bg-gold-400 transition"
+                >
+                  {t("quoteButton")}
+                </button>
+              )}
+              <button
+                onClick={() => router.push("/")}
+                className="px-6 py-2.5 rounded-xl bg-navy-950 text-white font-bold text-sm hover:bg-slate-800 transition"
+              >
+                {t("selBackToSearch")}
+              </button>
+            </div>
           </div>
+        )}
+
+        {orcamentoAberto && (
+          <OrcamentoModal
+            dados={{
+              origem_id: Number(params.get("origem_id")) || null,
+              origem_texto: params.get("origem_nome") || `#${params.get("origem_id")}`,
+              destino_id: Number(params.get("destino_id")) || null,
+              destino_texto: params.get("destino_nome") || `#${params.get("destino_id")}`,
+              tipo_trajeto: idaVolta ? "return" : "one_way",
+              data_ida: dataIda,
+              data_volta: idaVolta ? dataVolta : null,
+              quantidade_passageiros: passageiros,
+            }}
+            onFechar={() => setOrcamentoAberto(false)}
+          />
         )}
 
         {!carregando && !erro && (
