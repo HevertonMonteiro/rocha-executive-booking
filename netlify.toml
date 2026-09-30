@@ -1,16 +1,22 @@
 # =============================================================================
 # Netlify — o app Next.js fica na pasta `frontend`.
-# Nada aqui publica o site: so descreve COMO a Netlify deve construi-lo quando
-# voce conectar o repositorio. Variaveis de ambiente: docs/DEPLOY.md.
+# Descreve COMO a Netlify deve construir e servir o site. Variaveis de
+# ambiente: ver README.md ("Publicar em produção").
 # =============================================================================
 [build]
   base = "frontend"
   command = "npm run build"
-  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
   NEXT_TELEMETRY_DISABLED = "1"
+
+# Runtime oficial do Next.js na Netlify: sem isso, paginas dinamicas e rotas de
+# API (tudo que nao e estatico) respondem 404, pois a Netlify serviria o
+# conteudo de `.next` como arquivos estaticos em vez de rodar o servidor Next.
+# Nao definir `publish` manualmente: este plugin controla o diretorio de saida.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Headers de seguranca (CSP, HSTS, X-Frame-Options...) sao definidos em
 # frontend/next.config.mjs e valem tambem na Netlify.
