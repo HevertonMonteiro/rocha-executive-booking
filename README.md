@@ -43,7 +43,7 @@ fotos). O navegador nunca fala com a Supabase diretamente.
 **1. Supabase**
 1. Crie o projeto numa região da UE (Paris `eu-west-3` ou Frankfurt `eu-central-1`).
 2. Aplique o esquema: no SQL Editor, cole e rode **todos** os arquivos de `supabase/migrations/` **em ordem de nome**
-   (hoje: `..._schema.sql`, `..._storage.sql`, `..._orcamentos.sql`). Toda migração nova entra no fim dessa lista.
+   (hoje: `..._schema.sql`, `..._storage.sql`, `..._orcamentos.sql`, `..._permissoes.sql`). Toda migração nova entra no fim dessa lista.
 3. (Opcional) carregue o conteúdo inicial rodando `supabase/seed.sql`.
 4. Defina a senha do papel da aplicação (a migração cria `app_server` sem login):
    ```sql

@@ -6,6 +6,7 @@ import { COOKIE_SESSAO, agoraSegundos, assinarSessao } from "@/server/auth/sessa
 import { POST as loginPOST } from "@/app/api/admin/login/route";
 import { GET as meGET } from "@/app/api/admin/me/route";
 import { GET as reservasGET } from "@/app/api/admin/reservas/route";
+import { POST as logoutPOST } from "@/app/api/admin/logout/route";
 import { prepararBanco, requisicao } from "./ajuda";
 
 const ORIGEM = "http://localhost:3000";
@@ -98,5 +99,25 @@ describe("desconexao por inatividade (30 min) com teto absoluto", () => {
     const novo = me.headers.get("set-cookie")!.split(";")[0].split("=")[1];
     const payload = JSON.parse(Buffer.from(novo.split(".")[1], "base64url").toString());
     expect(payload.ini).toBe(inicio);
+  });
+});
+
+// Fica por ultimo: o logout invalida as sessoes do admin (incrementa a versao).
+describe("logout", () => {
+  it("outro site nao consegue deslogar o administrador", async () => {
+    const ok = await loginPOST(requisicao("/api/admin/login", { corpo: { email: "sessao@rocha.fr", senha: SENHA }, origem: ORIGEM }));
+    const cookie = ok.headers.get("set-cookie")!.split(";")[0];
+    const res = await logoutPOST(requisicao("/api/admin/logout", { metodo: "POST", cookie, origem: "https://site-malicioso.com" }));
+    expect(res.status).toBe(403);
+    expect((await meGET(requisicao("/api/admin/me", { cookie }), ctx)).status).toBe(200);
+  });
+
+  it("invalida a sessao no servidor: um cookie copiado para de funcionar na hora", async () => {
+    const ok = await loginPOST(requisicao("/api/admin/login", { corpo: { email: "sessao@rocha.fr", senha: SENHA }, origem: ORIGEM }));
+    const cookie = ok.headers.get("set-cookie")!.split(";")[0];
+    const res = await logoutPOST(requisicao("/api/admin/logout", { metodo: "POST", cookie, origem: ORIGEM }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("set-cookie")).toMatch(/Max-Age=0/);
+    expect((await meGET(requisicao("/api/admin/me", { cookie }), ctx)).status).toBe(401);
   });
 });
