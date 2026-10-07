@@ -22,8 +22,6 @@ export interface AdminAtual {
   id: number;
   email: string;
   nome: string;
-  mfaAtivo: boolean;
-  mfaSessao: boolean;
   sessaoIni: number;
   sessaoVersao: number;
 }
@@ -148,7 +146,7 @@ export function publica(
 }
 
 // ---------------------------------------------------------------------------
-// Rotas do painel admin: sessao + MFA + origem + auditoria
+// Rotas do painel admin: sessao + origem + auditoria
 // ---------------------------------------------------------------------------
 export function verificarOrigem(req: NextRequest) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return;
@@ -184,14 +182,13 @@ async function carregarAdmin(req: NextRequest): Promise<AdminAtual> {
     email: string;
     nome: string;
     ativo: boolean;
-    mfa_ativo: boolean;
     sessao_versao: number;
-  }>("select id, email, nome, ativo, mfa_ativo, sessao_versao from admins where id = $1", [Number(sessao.sub)]);
+  }>("select id, email, nome, ativo, sessao_versao from admins where id = $1", [Number(sessao.sub)]);
   if (!a || !a.ativo || a.sessao_versao !== sessao.v) throw new ErroHttp(401, "Sessao invalida ou expirada.");
-  return { id: a.id, email: a.email, nome: a.nome, mfaAtivo: a.mfa_ativo, mfaSessao: sessao.mfa, sessaoIni: sessao.ini, sessaoVersao: a.sessao_versao };
+  return { id: a.id, email: a.email, nome: a.nome, sessaoIni: sessao.ini, sessaoVersao: a.sessao_versao };
 }
 
-export function comAdmin(handler: Handler, opcoes: { permitirSemMfa?: boolean } = {}) {
+export function comAdmin(handler: Handler) {
   return async (req: NextRequest, rota: RotaDinamica = { params: Promise.resolve({}) }) => {
     const ip = ipDe(req);
     let admin: AdminAtual | null = null;
@@ -201,15 +198,12 @@ export function comAdmin(handler: Handler, opcoes: { permitirSemMfa?: boolean } 
       exigirAcessoAdmin(req);
       verificarOrigem(req);
       admin = await carregarAdmin(req);
-      if (!opcoes.permitirSemMfa && config.exigirMfa && !(admin.mfaAtivo && admin.mfaSessao)) {
-        throw new ErroHttp(403, "Ative a autenticacao em dois fatores para continuar.", "MFA_OBRIGATORIO");
-      }
       const params = await rota.params;
       resposta = paraResposta(await handler({ req, params, ip, admin }));
       // Sessao deslizante: cada uso reinicia os 30 minutos de inatividade (sem passar do teto absoluto).
       const comCookie = resposta instanceof NextResponse ? resposta : new NextResponse(resposta.body, resposta);
       if (!comCookie.cookies.has(COOKIE_SESSAO)) {
-        comCookie.cookies.set(COOKIE_SESSAO, await assinarSessao(admin.id, admin.mfaSessao, admin.sessaoVersao, admin.sessaoIni), opcoesCookie());
+        comCookie.cookies.set(COOKIE_SESSAO, await assinarSessao(admin.id, admin.sessaoVersao, admin.sessaoIni), opcoesCookie());
       }
       resposta = comCookie;
     } catch (e) {

@@ -8,8 +8,6 @@ import { Alerta, Campo, inputCls } from "@/components/admin/ui";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [codigo, setCodigo] = useState("");
-  const [precisaCodigo, setPrecisaCodigo] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [motivo] = useState(() => (typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("motivo") ?? ""));
@@ -19,12 +17,8 @@ export default function LoginPage() {
     setEnviando(true);
     setErro("");
     try {
-      const { data } = await adminApi.post("/login", { email, senha, codigo: codigo || undefined });
-      if (data.mfa_necessario) {
-        setPrecisaCodigo(true);
-      } else {
-        window.location.href = "/admin";
-      }
+      await adminApi.post("/login", { email, senha });
+      window.location.href = "/admin";
     } catch (err) {
       setErro(mensagemErro(err, "Nao foi possivel entrar."));
     } finally {
@@ -45,23 +39,18 @@ export default function LoginPage() {
         {motivo === "expirada" && <div className="mb-4"><Alerta tipo="aviso">Sua sessão expirou. Entre novamente.</Alerta></div>}
         <form onSubmit={entrar} className="space-y-4" autoComplete="on">
           <Campo rotulo="E-mail">
-            <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} disabled={precisaCodigo} />
+            <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
           </Campo>
           <Campo rotulo="Senha">
-            <input type="password" required autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} disabled={precisaCodigo} />
+            <input type="password" required autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} />
           </Campo>
-          {precisaCodigo && (
-            <Campo rotulo="Código do aplicativo autenticador" dica="Os 6 dígitos que aparecem no seu celular.">
-              <input inputMode="numeric" pattern="\d{6}" maxLength={6} required autoFocus autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} className={`${inputCls} tracking-[0.4em] text-center font-mono`} />
-            </Campo>
-          )}
           {erro && <Alerta>{erro}</Alerta>}
           <button
             type="submit"
             disabled={enviando}
             className="w-full py-3 rounded-xl font-extrabold text-sm uppercase tracking-wider text-navy-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 disabled:opacity-50 transition"
           >
-            {enviando ? "Entrando..." : precisaCodigo ? "Verificar e entrar" : "Entrar"}
+            {enviando ? "Entrando..." : "Entrar"}
           </button>
         </form>
 

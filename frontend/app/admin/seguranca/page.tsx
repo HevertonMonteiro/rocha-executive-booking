@@ -4,24 +4,13 @@ import { useState } from "react";
 import { adminApi, mensagemErro } from "@/lib/adminApi";
 import { Alerta, Badge, Botao, Campo, Card, Carregando, Tabela, Vazio, dataSistema, inputCls, useCarregar } from "@/components/admin/ui";
 
-interface Eu { email: string; mfa_ativo: boolean; mfa_obrigatorio: boolean; acesso_liberado: boolean }
-
 export default function SegurancaPage() {
-  const { dados: eu, recarregar } = useCarregar<Eu>("/me");
   const { dados: auditoria } = useCarregar<any[]>("/auditoria");
 
   return (
     <div className="space-y-5 max-w-4xl">
       <h1 className="text-2xl font-black text-slate-900 font-heading">Segurança da conta</h1>
-      {!eu ? <Carregando /> : (
-        <>
-          {eu.mfa_obrigatorio && !eu.mfa_ativo && (
-            <Alerta tipo="aviso">Por segurança, é obrigatório ativar a verificação em duas etapas antes de usar o painel. Configure abaixo.</Alerta>
-          )}
-          <VerificacaoDuasEtapas eu={eu} onMudou={() => { window.location.href = "/admin/seguranca"; }} recarregar={recarregar} />
-          <AlterarSenha />
-        </>
-      )}
+      <AlterarSenha />
 
       <Card titulo="Atividade recente no painel (últimas 200 ações)">
         {!auditoria ? <Carregando /> : auditoria.length === 0 ? <Vazio>Sem registros.</Vazio> : (
@@ -41,72 +30,6 @@ export default function SegurancaPage() {
         )}
       </Card>
     </div>
-  );
-}
-
-function VerificacaoDuasEtapas({ eu, onMudou, recarregar }: { eu: Eu; onMudou: () => void; recarregar: () => void }) {
-  const [config, setConfig] = useState<{ qr: string; segredo: string } | null>(null);
-  const [codigo, setCodigo] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [ocupado, setOcupado] = useState(false);
-
-  async function iniciar() {
-    setOcupado(true); setErro("");
-    try { const { data } = await adminApi.post("/mfa/iniciar", {}); setConfig(data); }
-    catch (e) { setErro(mensagemErro(e)); } finally { setOcupado(false); }
-  }
-  async function ativar(e: React.FormEvent) {
-    e.preventDefault();
-    setOcupado(true); setErro("");
-    try { await adminApi.post("/mfa/ativar", { codigo }); onMudou(); }
-    catch (e2) { setErro(mensagemErro(e2)); } finally { setOcupado(false); }
-  }
-  async function desativar(e: React.FormEvent) {
-    e.preventDefault();
-    setOcupado(true); setErro("");
-    try { await adminApi.post("/mfa/desativar", { senha, codigo }); setSenha(""); setCodigo(""); onMudou(); }
-    catch (e2) { setErro(mensagemErro(e2)); recarregar(); } finally { setOcupado(false); }
-  }
-
-  return (
-    <Card titulo="Verificação em duas etapas (aplicativo autenticador)" acoes={<Badge cor={eu.mfa_ativo ? "verde" : "amarelo"}>{eu.mfa_ativo ? "Ativada" : "Desativada"}</Badge>}>
-      {eu.mfa_ativo ? (
-        <div className="space-y-3">
-          <p className="text-sm text-slate-600">Ao entrar, além da senha, é pedido o código de 6 dígitos do seu aplicativo (Google Authenticator, Microsoft Authenticator, 1Password...).</p>
-          {eu.mfa_obrigatorio ? (
-            <p className="text-xs text-slate-500">Neste ambiente a verificação é obrigatória e não pode ser desativada.</p>
-          ) : (
-            <form onSubmit={desativar} className="grid sm:grid-cols-3 gap-3 items-end">
-              <Campo rotulo="Senha"><input type="password" required className={inputCls} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" /></Campo>
-              <Campo rotulo="Código atual"><input inputMode="numeric" maxLength={6} required className={inputCls} value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} autoComplete="one-time-code" /></Campo>
-              <Botao type="submit" variante="perigo" disabled={ocupado}>Desativar</Botao>
-            </form>
-          )}
-        </div>
-      ) : !config ? (
-        <div className="space-y-3">
-          <p className="text-sm text-slate-600">Protege sua conta mesmo se a senha vazar. Você vai precisar de um aplicativo autenticador no celular.</p>
-          <Botao disabled={ocupado} onClick={iniciar}>Configurar agora</Botao>
-        </div>
-      ) : (
-        <form onSubmit={ativar} className="space-y-4">
-          <ol className="text-sm text-slate-600 list-decimal pl-5 space-y-1">
-            <li>Abra o aplicativo autenticador e escaneie o QR Code abaixo.</li>
-            <li>Digite o código de 6 dígitos que o aplicativo mostrar.</li>
-          </ol>
-          <div className="flex flex-wrap items-center gap-5">
-            <img src={config.qr} alt="QR Code para o aplicativo autenticador" className="w-44 h-44 border border-slate-200 rounded-lg" />
-            <div className="space-y-3 flex-1 min-w-[200px]">
-              <div className="text-xs text-slate-500">Não consegue escanear? Digite esta chave no aplicativo:<div className="font-mono text-sm text-slate-900 break-all mt-1 select-all">{config.segredo}</div></div>
-              <Campo rotulo="Código de 6 dígitos"><input inputMode="numeric" maxLength={6} required autoFocus className={`${inputCls} tracking-[0.4em] text-center font-mono`} value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} autoComplete="one-time-code" /></Campo>
-              <Botao type="submit" disabled={ocupado}>Ativar verificação</Botao>
-            </div>
-          </div>
-        </form>
-      )}
-      {erro && <div className="mt-3"><Alerta>{erro}</Alerta></div>}
-    </Card>
   );
 }
 

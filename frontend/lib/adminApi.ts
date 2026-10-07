@@ -7,11 +7,8 @@ adminApi.interceptors.response.use(
   (r) => r,
   (erro) => {
     const status = erro?.response?.status;
-    const codigo = erro?.response?.data?.codigo;
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login")) {
-      if (status === 401) window.location.href = "/admin/login?motivo=expirada";
-      else if (status === 403 && codigo === "MFA_OBRIGATORIO" && !window.location.pathname.startsWith("/admin/seguranca"))
-        window.location.href = "/admin/seguranca";
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login") && status === 401) {
+      window.location.href = "/admin/login?motivo=expirada";
     }
     return Promise.reject(erro);
   }

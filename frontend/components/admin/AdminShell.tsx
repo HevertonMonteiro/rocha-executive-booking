@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { adminApi } from "@/lib/adminApi";
 import { Carregando } from "./ui";
 
 interface Eu {
   email: string;
   nome: string;
-  acesso_liberado: boolean;
-  mfa_obrigatorio: boolean;
-  mfa_ativo: boolean;
 }
 
 const MENU: { grupo: string; itens: { href: string; rotulo: string; icone: string }[] }[] = [
@@ -44,7 +41,6 @@ const MENU: { grupo: string; itens: { href: string; rotulo: string; icone: strin
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [eu, setEu] = useState<Eu | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
   const ehLogin = pathname === "/admin/login";
@@ -53,13 +49,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     if (ehLogin) return;
     adminApi
       .get<Eu>("/me")
-      .then(({ data }) => {
-        setEu(data);
-        // MFA obrigatorio e ainda nao ativado: so a tela de seguranca fica disponivel.
-        if (!data.acesso_liberado && pathname !== "/admin/seguranca") router.replace("/admin/seguranca");
-      })
+      .then(({ data }) => setEu(data))
       .catch(() => {});
-  }, [ehLogin, pathname, router]);
+  }, [ehLogin, pathname]);
 
   useEffect(() => setMenuAberto(false), [pathname]);
 
@@ -107,14 +99,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <ul className="space-y-0.5">
             {g.itens.map((i) => {
               const ativo = i.href === "/admin" ? pathname === "/admin" : pathname.startsWith(i.href);
-              const bloqueado = !eu.acesso_liberado && i.href !== "/admin/seguranca";
               return (
                 <li key={i.href}>
                   <Link
-                    href={bloqueado ? "/admin/seguranca" : i.href}
+                    href={i.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
                       ativo ? "bg-gold-500 text-navy-950" : "text-slate-300 hover:bg-navy-800 hover:text-white"
-                    } ${bloqueado ? "opacity-40" : ""}`}
+                    }`}
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={i.icone} />

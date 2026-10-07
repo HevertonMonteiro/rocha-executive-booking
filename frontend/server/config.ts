@@ -14,13 +14,6 @@ export const config = {
   get jwtSecret() {
     return process.env.JWT_SECRET || "";
   },
-  get chaveCifra() {
-    return process.env.APP_ENCRYPTION_KEY || "";
-  },
-  get exigirMfa() {
-    const v = process.env.ADMIN_REQUIRE_MFA;
-    return v ? v === "true" : producao();
-  },
   get sumup() {
     return {
       apiUrl: process.env.SUMUP_API_URL || "https://api.sumup.com/v0.1",
@@ -91,7 +84,6 @@ export function garantirConfig(): void {
   if (validado || !producao()) return;
   const problemas: string[] = [];
   if (config.jwtSecret.length < 32) problemas.push("JWT_SECRET precisa de 32+ caracteres aleatorios.");
-  if (!config.chaveCifra) problemas.push("APP_ENCRYPTION_KEY nao configurada (32 bytes em base64).");
   if (!config.siteUrl.startsWith("https://")) problemas.push("SITE_URL deve usar https://.");
   const url = process.env.DATABASE_URL || "";
   if (!url || url.startsWith("pglite:")) problemas.push("DATABASE_URL deve apontar para o PostgreSQL da Supabase.");

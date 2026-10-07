@@ -6,9 +6,7 @@ export const COOKIE_SESSAO = "admin_session";
 
 export interface ClaimsSessao {
   sub: string;
-  /** true quando o segundo fator (TOTP) foi validado nesta sessao. */
-  mfa: boolean;
-  /** Versao da sessao do admin: trocar senha/MFA invalida as sessoes antigas. */
+  /** Versao da sessao do admin: trocar a senha ou sair invalida as sessoes antigas. */
   v: number;
   /** Inicio da sessao (epoch em segundos): base do teto absoluto de duracao. */
   ini: number;
@@ -25,8 +23,8 @@ function segredo(): Uint8Array {
  * O token vale so pelo tempo de INATIVIDADE (30 min). A cada requisicao do admin ele e
  * reemitido (sliding); `ini` guarda o inicio para impor o teto absoluto.
  */
-export async function assinarSessao(adminId: number, mfa: boolean, versao: number, inicio = agoraSegundos()): Promise<string> {
-  return new SignJWT({ mfa, v: versao, ini: inicio })
+export async function assinarSessao(adminId: number, versao: number, inicio = agoraSegundos()): Promise<string> {
+  return new SignJWT({ v: versao, ini: inicio })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(adminId))
     .setIssuedAt()
@@ -39,7 +37,7 @@ export async function lerSessao(token: string | undefined): Promise<ClaimsSessao
   try {
     const { payload } = await jwtVerify(token, segredo(), { algorithms: ["HS256"] });
     return payload.sub
-      ? { sub: payload.sub, mfa: payload.mfa === true, v: Number(payload.v ?? 0), ini: Number(payload.ini ?? payload.iat ?? 0) }
+      ? { sub: payload.sub, v: Number(payload.v ?? 0), ini: Number(payload.ini ?? payload.iat ?? 0) }
       : null;
   } catch {
     return null;

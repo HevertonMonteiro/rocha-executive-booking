@@ -14,7 +14,7 @@ enabled = true
 sql_paths = ["./seed.sql"]
 
 [auth]
-# O painel admin usa autenticacao propria (cookie HttpOnly + MFA) e NAO usa o
+# O painel admin usa autenticacao propria (cookie HttpOnly) e NAO usa o
 # Supabase Auth; o cadastro publico fica desligado.
 enabled = false
 enable_signup = false

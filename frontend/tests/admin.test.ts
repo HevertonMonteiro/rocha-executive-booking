@@ -2,14 +2,10 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/servicos/sumup", () => ({ criarCheckoutSumup: vi.fn(), consultarCheckoutSumup: vi.fn() }));
 
-import { generateSync } from "otplib";
 import { consulta } from "@/server/db/client";
 import { hashSenha } from "@/server/auth/senha";
-import { decifrar } from "@/server/auth/cifra";
 import { POST as loginPOST } from "@/app/api/admin/login/route";
 import { GET as meGET } from "@/app/api/admin/me/route";
-import { POST as mfaIniciar } from "@/app/api/admin/mfa/iniciar/route";
-import { POST as mfaAtivar } from "@/app/api/admin/mfa/ativar/route";
 import { POST as criarReservaPublica } from "@/app/api/reservas/criar/route";
 import { GET as reservasGET, POST as reservasPOST } from "@/app/api/admin/reservas/route";
 import { GET as reservaGET, PATCH as reservaPATCH } from "@/app/api/admin/reservas/[id]/route";
@@ -47,8 +43,8 @@ const ctx = (params: Record<string, string> = {}) => ({ params: Promise.resolve(
 const admin = (caminho: string, corpo?: unknown, metodo?: string) =>
   requisicao(caminho, { corpo, metodo, cookie, origem: ORIGEM });
 
-async function login(email = "dono@rocha.fr", senha = SENHA, codigo?: string) {
-  return loginPOST(requisicao("/api/admin/login", { corpo: { email, senha, codigo }, origem: ORIGEM }));
+async function login(email = "dono@rocha.fr", senha = SENHA) {
+  return loginPOST(requisicao("/api/admin/login", { corpo: { email, senha }, origem: ORIGEM }));
 }
 
 describe("autenticacao do admin", () => {
@@ -96,26 +92,13 @@ describe("autenticacao do admin", () => {
     expect((await meGET(admin("/api/admin/me"), ctx())).status).toBe(200);
   });
 
-  it("MFA: ativa com codigo TOTP, exige o codigo no login e impede reutiliza-lo", async () => {
-    const { segredo } = await (await mfaIniciar(admin("/api/admin/mfa/iniciar", {}, "POST"), ctx())).json();
-    const [{ mfa_secret }] = await consulta("select mfa_secret from admins");
-    expect(mfa_secret).not.toContain(segredo); // guardado cifrado
-    expect(decifrar(mfa_secret)).toBe(segredo);
-
-    const codigo = generateSync({ secret: segredo });
-    const ativado = await mfaAtivar(admin("/api/admin/mfa/ativar", { codigo }), ctx());
-    expect(ativado.status).toBe(200);
-    cookie = ativado.headers.get("set-cookie")!.split(";")[0];
-
-    expect((await (await login()).json()).mfa_necessario).toBe(true); // senha certa mas sem codigo: sem sessao
-    expect((await login("dono@rocha.fr", SENHA, "000000")).status).toBe(401);
-    // O codigo usado para ativar nao pode ser reaproveitado no login.
-    expect((await login("dono@rocha.fr", SENHA, codigo)).status).toBe(401);
-    await consulta("update admins set mfa_ultimo_passo = mfa_ultimo_passo - 5"); // avanca o relogio simulado
-    const ok = await login("dono@rocha.fr", SENHA, generateSync({ secret: segredo }));
+  it("login so com e-mail e senha libera o painel direto (sem verificacao em duas etapas)", async () => {
+    const ok = await login();
     expect(ok.status).toBe(200);
+    expect(await ok.json()).toEqual({ ok: true });
     cookie = ok.headers.get("set-cookie")!.split(";")[0];
-    await consulta("delete from limites_taxa");
+    expect((await reservasGET(admin("/api/admin/reservas"), ctx())).status).toBe(200);
+    expect(await (await meGET(admin("/api/admin/me"), ctx())).json()).toEqual({ id: expect.any(Number), email: "dono@rocha.fr", nome: "Administrador" });
   });
 });
 

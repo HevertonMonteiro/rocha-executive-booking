@@ -15,7 +15,6 @@ const definir = (texto, chave, valor) => texto.replace(new RegExp(`^${chave}=.*$
 let env = readFileSync(".env.example", "utf-8");
 env = definir(env, "DATABASE_URL", "pglite:./.data/dev");
 env = definir(env, "JWT_SECRET", randomBytes(48).toString("base64"));
-env = definir(env, "APP_ENCRYPTION_KEY", randomBytes(32).toString("base64"));
 env = definir(env, "STORAGE_DRIVER", "local");
 // Sem chave da SumUp, o checkout mostra um painel "MODE TEST" (nunca funciona em production).
 env = definir(env, "PAGAMENTO_SIMULADO", "true");

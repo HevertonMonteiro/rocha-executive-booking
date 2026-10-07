@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 async function tokenExpirado(segundosAtras: number) {
   // Token assinado com a chave real, porem ja vencido (simula 30+ min sem usar o painel).
-  return new SignJWT({ mfa: false, v: 0, ini: agoraSegundos() - segundosAtras })
+  return new SignJWT({ v: 0, ini: agoraSegundos() - segundosAtras })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(adminId))
     .setIssuedAt(agoraSegundos() - segundosAtras)
@@ -86,7 +86,7 @@ describe("desconexao por inatividade (30 min) com teto absoluto", () => {
   });
 
   it("mesmo com uso continuo, apos o teto de 8 horas precisa entrar de novo", async () => {
-    const velho = await assinarSessao(adminId, false, 0, agoraSegundos() - 9 * 3600); // token novo, mas sessao iniciada ha 9 h
+    const velho = await assinarSessao(adminId, 0, agoraSegundos() - 9 * 3600); // token novo, mas sessao iniciada ha 9 h
     const res = await meGET(requisicao("/api/admin/me", { cookie: cookieDe(velho) }), ctx);
     expect(res.status).toBe(401);
     expect((await res.json()).codigo).toBe("SESSAO_EXPIRADA");
@@ -94,7 +94,7 @@ describe("desconexao por inatividade (30 min) com teto absoluto", () => {
 
   it("a renovacao preserva o inicio: nao da para estender a sessao alem do teto", async () => {
     const inicio = agoraSegundos() - 3600;
-    const token = await assinarSessao(adminId, false, 0, inicio);
+    const token = await assinarSessao(adminId, 0, inicio);
     const me = await meGET(requisicao("/api/admin/me", { cookie: cookieDe(token) }), ctx);
     const novo = me.headers.get("set-cookie")!.split(";")[0].split("=")[1];
     const payload = JSON.parse(Buffer.from(novo.split(".")[1], "base64url").toString());

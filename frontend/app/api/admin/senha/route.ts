@@ -26,8 +26,7 @@ export const POST = comAdmin(
       [admin.id, await hashSenha(nova_senha)]
     );
     const resposta = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-    resposta.cookies.set(COOKIE_SESSAO, await assinarSessao(admin.id, admin.mfaSessao, n.sessao_versao), opcoesCookie());
+    resposta.cookies.set(COOKIE_SESSAO, await assinarSessao(admin.id, n.sessao_versao), opcoesCookie());
     return resposta;
-  },
-  { permitirSemMfa: true }
+  }
 );

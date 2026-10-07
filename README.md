@@ -43,7 +43,7 @@ fotos). O navegador nunca fala com a Supabase diretamente.
 **1. Supabase**
 1. Crie o projeto numa região da UE (Paris `eu-west-3` ou Frankfurt `eu-central-1`).
 2. Aplique o esquema: no SQL Editor, cole e rode **todos** os arquivos de `supabase/migrations/` **em ordem de nome**
-   (hoje: `..._schema.sql`, `..._storage.sql`, `..._orcamentos.sql`, `..._permissoes.sql`). Toda migração nova entra no fim dessa lista.
+   (hoje: `..._schema.sql`, `..._storage.sql`, `..._orcamentos.sql`, `..._permissoes.sql`, `..._remove_mfa.sql`). Toda migração nova entra no fim dessa lista.
 3. (Opcional) carregue o conteúdo inicial rodando `supabase/seed.sql`.
 4. Defina a senha do papel da aplicação (a migração cria `app_server` sem login):
    ```sql
@@ -67,8 +67,6 @@ fotos). O navegador nunca fala com a Supabase diretamente.
 | `DATABASE_URL` | connection string do pooler com `app_server` |
 | `SITE_URL` / `NEXT_PUBLIC_SITE_URL` | `https://seu-dominio.fr` |
 | `JWT_SECRET` | `openssl rand -base64 48` |
-| `APP_ENCRYPTION_KEY` | `openssl rand -base64 32` (cifra o segredo do MFA) |
-| `ADMIN_REQUIRE_MFA` | `true` |
 | `STORAGE_DRIVER` | `supabase` |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | chave de serviço |
@@ -76,7 +74,7 @@ fotos). O navegador nunca fala com a Supabase diretamente.
 | `RESEND_API_KEY`, `EMAIL_REMETENTE` | e-mails automáticos (ver passo 4) |
 
 Todas as opções (com valores padrão) estão em `frontend/.env.example`. Com `NODE_ENV=production` o
-servidor **recusa iniciar** se `JWT_SECRET`, `APP_ENCRYPTION_KEY`, `DATABASE_URL` ou `SITE_URL` forem
+servidor **recusa iniciar** se `JWT_SECRET`, `DATABASE_URL` ou `SITE_URL` forem
 inseguros — não defina `PAGAMENTO_SIMULADO` em produção. Escolha a região das funções na UE, ative
 domínio próprio com HTTPS/Force HTTPS. A função agendada `netlify/functions/manutencao.mts` roda todo
 dia (limpa contadores e logs antigos).
@@ -124,14 +122,13 @@ cd frontend
 DATABASE_URL='<string de produção>' npm run admin:criar -- dono@suaempresa.fr
 ```
 
-Pede uma senha (entre 8 e 16 caracteres) sem mostrá-la na tela. Depois, em `/admin/login`, o painel exige
-configurar o aplicativo autenticador (MFA). O mesmo comando redefine a senha e derruba todas as sessões
-(serve também como recuperação de acesso).
+Pede uma senha (entre 8 e 16 caracteres) sem mostrá-la na tela; depois é só entrar em `/admin/login`. O
+mesmo comando redefine a senha e derruba todas as sessões (serve também como recuperação de acesso).
 
 **6. Checklist antes de divulgar**
 
 - [ ] `npm test`, `npm run typecheck` e `npm run build` sem erros.
-- [ ] MFA ativo no admin; senha forte; nenhum admin de teste.
+- [ ] Senha forte no admin; nenhum admin de teste.
 - [ ] Pagamento real de teste (sinal e integral) com valor baixo, confirmando sozinho.
 - [ ] Preencher em **Admin → Dados da empresa**: SIRET, endereço, e-mail, forma jurídica, diretor de
       publicação e mediador de consumo (alimentam as *mentions légales* e as CGV).
@@ -152,8 +149,8 @@ computador (`ADMIN_ACESSO=local`). Sem chave da SumUp, `PAGAMENTO_SIMULADO=true`
 
 ## Segurança (resumo)
 
-Autenticação com hash `scrypt`, senha de 8–16 caracteres com 3 tipos de caractere, MFA (TOTP) obrigatório
-em produção, sessão com cookie `HttpOnly`/`SameSite=Strict` que expira após 30 min de inatividade (teto
+Autenticação com hash `scrypt`, senha de 8–16 caracteres com 3 tipos de caractere,
+sessão com cookie `HttpOnly`/`SameSite=Strict` que expira após 30 min de inatividade (teto
 de 8 h), bloqueio por força bruta, verificação de origem (CSRF), todas as consultas SQL parametrizadas,
 RLS ativo e forçado em todas as tabelas do Supabase (o papel da aplicação não tem privilégio de alterar
 o esquema), dados de cartão nunca passam pelo servidor (SumUp, escopo PCI SAQ A), upload de imagem
