@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Webhook da SumUp. Nunca confiamos no conteudo recebido: extraimos apenas o id
- * do checkout e confirmamos o pagamento consultando a API da SumUp. Sempre
- * responde 200 (senao a SumUp reenvia indefinidamente).
+ * do checkout e confirmamos o pagamento consultando a API da SumUp. Responde
+ * 2xx vazio, como a SumUp exige; em erro (5xx) ela reenvia em 1, 5 e 20 min e 2 h.
  */
 export const POST = publica(
   async ({ req }) => {
@@ -34,7 +34,7 @@ export const POST = publica(
     ]);
 
     if (checkoutId) await confirmarCheckoutPago(checkoutId);
-    return { received: true };
+    return new Response(null, { status: 204 });
   },
   { limite: { nome: "webhook", max: 120, janelaSeg: 60 } }
 );

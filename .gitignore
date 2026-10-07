@@ -20,15 +20,6 @@ frontend/next-env.d.ts
 frontend/npm-debug.log*
 
 # =============================================================================
-# Backend Python legado (nao usado em producao — ver backend/LEGADO.md)
-# =============================================================================
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.venv/
-backend/*.db
-backend/*.sqlite3
-
-# =============================================================================
 # Sistema operacional / editor
 # =============================================================================
 .DS_Store

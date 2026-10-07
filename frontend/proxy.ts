@@ -9,8 +9,8 @@ function acessoAdminLocal(): boolean {
 
 // 1) Modo "local": o painel (paginas e API) nao existe para quem vem de link publico/tunel.
 // 2) Protege as PAGINAS do painel exigindo sessao valida (a API valida de novo a cada chamada,
-//    inclusive no banco). Roda no edge: nao pode importar codigo do servidor Node.
-export async function middleware(req: NextRequest) {
+//    inclusive no banco). Arquivo leve de proposito: roda antes de toda requisicao do painel.
+export async function proxy(req: NextRequest) {
   if (acessoAdminLocal() && !requisicaoLocal(req.headers)) {
     return new NextResponse("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
   }

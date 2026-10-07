@@ -10,7 +10,7 @@ import { prepararBanco, requisicao } from "./ajuda";
 
 const ORIGEM = "http://localhost:3000";
 const SENHA = "Senha-Forte-123!";
-const ctx = { params: {} };
+const ctx = { params: Promise.resolve({}) };
 let adminId = 0;
 const cookieDe = (token: string) => `${COOKIE_SESSAO}=${token}`;
 

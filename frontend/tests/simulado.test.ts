@@ -8,7 +8,7 @@ import { GET as statusGET } from "@/app/api/reservas/status/route";
 import { config, garantirConfig } from "@/server/config";
 import { dadosReserva, futuro, prepararBanco, requisicao } from "./ajuda";
 
-const ctx = { params: {} };
+const ctx = { params: Promise.resolve({}) };
 
 beforeAll(async () => {
   await prepararBanco();

@@ -26,7 +26,13 @@ export const config = {
       apiUrl: process.env.SUMUP_API_URL || "https://api.sumup.com/v0.1",
       apiKey: process.env.SUMUP_API_KEY || "",
       merchantCode: process.env.SUMUP_MERCHANT_CODE || "",
-      payToEmail: process.env.SUMUP_PAY_TO_EMAIL || "",
+    };
+  },
+  /** E-mail transacional (Resend). Sem chave, nenhum e-mail e enviado. */
+  get email() {
+    return {
+      apiKey: process.env.RESEND_API_KEY || "",
+      remetente: process.env.EMAIL_REMETENTE || "",
     };
   },
   get supabase() {

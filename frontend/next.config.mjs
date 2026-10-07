@@ -13,9 +13,9 @@ try {
 // confira o console do navegador por violacoes de CSP.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${producao ? "" : " 'unsafe-eval'"} https://gateway.sumup.com`,
+  `script-src 'self' 'unsafe-inline'${producao ? "" : " 'unsafe-eval'"} https://*.sumup.com`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${origemStorage}`.trim(),
+  `img-src 'self' data: blob: https://static.sumup.com ${origemStorage}`.trim(),
   "font-src 'self' data:",
   "connect-src 'self' https://*.sumup.com https://*.sumup.io",
   "frame-src https:",
@@ -42,16 +42,10 @@ const nextConfig = {
   reactStrictMode: true,
   // O site usa <img> comum: desliga o otimizador de imagens (/_next/image), uma superficie de ataque a menos.
   images: { unoptimized: true },
-  eslint: {
-    // O projeto nao inclui devDependencies de ESLint; evita falha no build
-    ignoreDuringBuilds: true,
-  },
-  experimental: {
-    // Drivers de banco ficam fora do bundle (carregados do node_modules em runtime).
-    serverComponentsExternalPackages: ["postgres", "@electric-sql/pglite", "@supabase/supabase-js"],
-    // PGlite so existe em desenvolvimento: nao entra nas funcoes da Netlify.
-    outputFileTracingExcludes: { "*": ["node_modules/@electric-sql/pglite/**"] },
-  },
+  // Drivers de banco ficam fora do bundle (carregados do node_modules em runtime).
+  serverExternalPackages: ["postgres", "@electric-sql/pglite", "@supabase/supabase-js"],
+  // PGlite so existe em desenvolvimento: nao entra nas funcoes da Netlify.
+  outputFileTracingExcludes: { "*": ["node_modules/@electric-sql/pglite/**"] },
   async redirects() {
     // A home passou de /busca para a raiz; mantem links antigos funcionando.
     return [

@@ -6,6 +6,9 @@ declare global {
         checkoutId: string;
         locale?: string;
         theme?: string;
+        amount?: string;
+        currency?: string;
+        email?: string;
         onResponse?: (type: string, body?: unknown) => void;
       }) => void;
     };
@@ -23,8 +26,17 @@ const LOCALES: Record<string, string> = {
   en: "en-US",
 };
 
+/**
+ * Desfecho do pagamento no widget. Os demais eventos da SumUp sao etapas do meio do
+ * caminho e NAO encerram o fluxo: "sent" (formulario enviado), "auth-screen" (3D Secure)
+ * e "invalid" (dado do cartao digitado errado, o cliente corrige ali mesmo).
+ * "success" nao garante a cobranca: o servidor sempre confere com a SumUp.
+ */
+export type ResultadoPagamento = "success" | "fail" | "error";
+const FINAIS: readonly string[] = ["success", "fail", "error"];
+
 /** Painel de TESTE (checkout "sim_..."): permite concluir o fluxo sem cartao e sem cobrar nada. */
-function montarSimulado(alvoId: string, checkoutId: string, onResultado: (tipo: string) => void) {
+function montarSimulado(alvoId: string, checkoutId: string, onResultado: (tipo: ResultadoPagamento) => void) {
   const alvo = document.getElementById(alvoId);
   if (!alvo) return;
   alvo.innerHTML = "";
@@ -53,7 +65,7 @@ function montarSimulado(alvoId: string, checkoutId: string, onResultado: (tipo: 
       onResultado("error");
     }
   });
-  botao("Simuler un refus · Simulate declined", "background:#334155;color:#e2e8f0", () => onResultado("error"));
+  botao("Simuler un refus · Simulate declined", "background:#334155;color:#e2e8f0", () => onResultado("fail"));
   alvo.appendChild(caixa);
 }
 
@@ -62,7 +74,10 @@ export async function montarSumup(opcoes: {
   alvoId: string;
   checkoutId: string;
   idioma: string;
-  onResultado: (tipo: string) => void;
+  /** Valor cobrado (ex.: "13.00"), exibido no botao de pagar. */
+  valor?: string;
+  email?: string;
+  onResultado: (tipo: ResultadoPagamento) => void;
 }): Promise<void> {
   if (opcoes.checkoutId.startsWith("sim_")) return montarSimulado(opcoes.alvoId, opcoes.checkoutId, opcoes.onResultado);
   if (!window.SumUpCard) {
@@ -79,6 +94,10 @@ export async function montarSumup(opcoes: {
     checkoutId: opcoes.checkoutId,
     locale: LOCALES[opcoes.idioma] ?? "en-US",
     theme: "dark",
-    onResponse: (tipo) => opcoes.onResultado(tipo),
+    ...(opcoes.valor ? { amount: opcoes.valor, currency: "EUR" } : {}),
+    ...(opcoes.email ? { email: opcoes.email } : {}),
+    onResponse: (tipo) => {
+      if (FINAIS.includes(tipo)) opcoes.onResultado(tipo as ResultadoPagamento);
+    },
   });
 }

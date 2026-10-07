@@ -1,4 +1,4 @@
-// Sem dependencias de Node: usado tanto no servidor quanto no middleware (edge).
+// Sem dependencias de Node: usado tanto no servidor quanto no proxy (proxy.ts).
 
 const HOSTS_LOCAIS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const IPS_LOCAIS = new Set(["::1", "127.0.0.1", "::ffff:127.0.0.1"]);

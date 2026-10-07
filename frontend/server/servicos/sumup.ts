@@ -34,7 +34,8 @@ export async function criarCheckoutSumup(params: {
 }): Promise<string> {
   // Modo de TESTE (so desenvolvimento): nao chama a SumUp e nao cobra nada.
   if (config.pagamentoSimulado) return `sim_${randomBytes(8).toString("hex")}`;
-  const { merchantCode, payToEmail } = config.sumup;
+  const { merchantCode } = config.sumup;
+  if (!merchantCode) throw new ErroHttp(503, "Pagamento indisponivel no momento.", "PAGAMENTO_INDISPONIVEL");
   // A SumUp avisa o resultado do pagamento na URL informada em `return_url`
   // (nao ha cadastro de webhook no painel). So funciona com URL publica https.
   const publico = config.siteUrl.startsWith("https://");
@@ -45,8 +46,10 @@ export async function criarCheckoutSumup(params: {
       amount: Number(deCentavos(params.valorCentavos)),
       currency: "EUR",
       merchant_code: merchantCode,
-      ...(payToEmail ? { pay_to_email: payToEmail } : {}),
       description: params.descricao,
+      // Depois disso a SumUp recusa o pagamento: uma aba esquecida aberta nao consegue pagar
+      // um horario que ja foi liberado para outro cliente.
+      valid_until: new Date(Date.now() + config.holdPendenteMinutos * 60_000).toISOString(),
       ...(publico ? { return_url: `${config.siteUrl}/api/webhook/sumup` } : {}),
       ...(publico && params.redirectUrl ? { redirect_url: params.redirectUrl } : {}),
     }),

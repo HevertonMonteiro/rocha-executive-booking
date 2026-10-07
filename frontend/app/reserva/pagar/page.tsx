@@ -44,6 +44,7 @@ function PagarContent() {
           alvoId: "sumup-widget",
           checkoutId: data.checkout_id,
           idioma: idioma.langKey,
+          valor: data.valor,
           onResultado: async (tipo) => {
             if (tipo === "success") {
               await api.post("/api/pagamentos/sumup/sincronizar", { codigo }).catch(() => {});

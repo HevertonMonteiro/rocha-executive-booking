@@ -2,7 +2,7 @@
 
 Site de captação e reservas + painel administrativo.
 
-* **Site público** (Next.js 14): busca, escolha de veículo com disponibilidade em tempo real,
+* **Site público** (Next.js 16): busca, escolha de veículo com disponibilidade em tempo real,
   pagamento de **sinal (padrão 20%) ou integral** via SumUp, FAQ, página de parceiros, SEO para a França.
 * **Painel `/admin`**: reservas (recebe → destina parceiro → confirma → finaliza), pagamentos e
   status, clientes, parceiros (solicitações + aprovação), **financeiro** (recebido, a receber, a pagar
@@ -15,10 +15,9 @@ Site de captação e reservas + painel administrativo.
 ```
 frontend/            app Next.js (páginas, API em /api, painel /admin)
   server/            regra de negócio, banco, autenticação (só servidor)
-  tests/             62 testes automatizados (Postgres real em memória)
+  tests/             testes automatizados (Postgres real em memória)
 supabase/            migrações SQL, seed e configuração (fonte única do esquema)
 netlify.toml         configuração de build da Netlify
-backend/             protótipo Python antigo (legado, sem uso)
 ```
 
 ## Rodar localmente (sem Docker, sem nuvem)
@@ -39,12 +38,12 @@ Detalhes de variáveis de ambiente: `frontend/.env.example`.
 
 **Arquitetura:** navegador → Netlify (Next.js, páginas + API em funções serverless) → conexão direta TLS
 (papel `app_server`, sem acesso público) → Supabase (PostgreSQL com RLS em todas as tabelas + Storage de
-fotos). O navegador nunca fala com a Supabase diretamente. Não existe servidor Python em produção — a
-pasta `backend/` é o protótipo antigo e não é usada.
+fotos). O navegador nunca fala com a Supabase diretamente.
 
 **1. Supabase**
 1. Crie o projeto numa região da UE (Paris `eu-west-3` ou Frankfurt `eu-central-1`).
-2. Aplique o esquema: no SQL Editor, cole e rode `supabase/migrations/*.sql` **em ordem** (schema, depois storage).
+2. Aplique o esquema: no SQL Editor, cole e rode **todos** os arquivos de `supabase/migrations/` **em ordem de nome**
+   (hoje: `..._schema.sql`, `..._storage.sql`, `..._orcamentos.sql`). Toda migração nova entra no fim dessa lista.
 3. (Opcional) carregue o conteúdo inicial rodando `supabase/seed.sql`.
 4. Defina a senha do papel da aplicação (a migração cria `app_server` sem login):
    ```sql
@@ -73,7 +72,8 @@ pasta `backend/` é o protótipo antigo e não é usada.
 | `STORAGE_DRIVER` | `supabase` |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | chave de serviço |
-| `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE`, `SUMUP_PAY_TO_EMAIL` | painel de desenvolvedores da SumUp |
+| `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE` | painel da SumUp (ver passo 3) |
+| `RESEND_API_KEY`, `EMAIL_REMETENTE` | e-mails automáticos (ver passo 4) |
 
 Todas as opções (com valores padrão) estão em `frontend/.env.example`. Com `NODE_ENV=production` o
 servidor **recusa iniciar** se `JWT_SECRET`, `APP_ENCRYPTION_KEY`, `DATABASE_URL` ou `SITE_URL` forem
@@ -88,9 +88,34 @@ chave secreta, nunca no navegador) já informando `return_url = https://seu-domi
 (só funciona com `SITE_URL` em `https://`). O sistema não confia no conteúdo do webhook — confirma o
 pagamento consultando a API da SumUp e registra o valor realmente cobrado. O valor cobrado é sempre
 calculado no servidor: no mínimo `sinal_percentual` (20% ou mais) do total, ou o total; a reserva só é
-considerada concluída depois disso. Teste no *sandbox* antes da chave real.
+considerada concluída depois disso. Cada cobrança expira junto com a retenção do veículo (`HOLD_PENDENTE_MINUTOS`).
 
-**4. Primeiro administrador**
+Para ativar:
+
+1. **Teste (sandbox):** em [me.sumup.com](https://me.sumup.com) → *Settings → For Developers*, aba *Sandboxes*, crie
+   uma conta de teste. Gere uma API key dessa conta (*Toolkit → API Keys*) e anote o *merchant code* dela.
+2. Na Netlify, cadastre `SUMUP_API_KEY` (segredo) e `SUMUP_MERCHANT_CODE` e faça um novo deploy.
+3. Faça uma reserva de ponta a ponta com os
+   [cartões de teste](https://developer.sumup.com/online-payments/testing/) (inclusive um com 3D Secure). A
+   reserva deve aparecer no painel como paga sozinha. No sandbox, cobranças de exatamente 11 € falham de
+   propósito, o que serve para testar a recusa. Exemplo: o sinal de 20% de um trajeto de 55 €.
+4. **Produção:** troque as duas variáveis pela API key e pelo merchant code da conta real, faça um novo deploy
+   e um pagamento real de valor baixo (sinal e integral). Depois, estorne pelo painel da SumUp.
+
+**4. E-mails automáticos (Resend)**
+
+O sistema envia, pelo [Resend](https://resend.com):
+
+* ao **cliente**, quando um pagamento online é confirmado: confirmação da reserva no idioma escolhido no site
+  (código, trajeto, datas, veículo, valor pago e, se houver, o saldo com link para pagar);
+* à **empresa** (e-mail de contato em *Admin → Configurações*): aviso de pagamento recebido e de novo pedido de orçamento.
+
+Para ligar: crie a conta (região UE), verifique o domínio do site (registros DNS que o Resend mostra), gere
+uma API key e cadastre na Netlify `RESEND_API_KEY` e `EMAIL_REMETENTE` (ex.: `Rocha Executive Transport
+<reservas@seu-dominio.fr>`, com o domínio verificado). Sem essas variáveis nada é enviado e o resto do site
+funciona normalmente; uma falha no envio nunca impede o registro de um pagamento.
+
+**5. Primeiro administrador**
 
 Com a `DATABASE_URL` de produção em uma máquina de confiança:
 
@@ -103,7 +128,7 @@ Pede uma senha (entre 8 e 16 caracteres) sem mostrá-la na tela. Depois, em `/ad
 configurar o aplicativo autenticador (MFA). O mesmo comando redefine a senha e derruba todas as sessões
 (serve também como recuperação de acesso).
 
-**5. Checklist antes de divulgar**
+**6. Checklist antes de divulgar**
 
 - [ ] `npm test`, `npm run typecheck` e `npm run build` sem erros.
 - [ ] MFA ativo no admin; senha forte; nenhum admin de teste.
@@ -112,7 +137,8 @@ configurar o aplicativo autenticador (MFA). O mesmo comando redefine a senha e d
       publicação e mediador de consumo (alimentam as *mentions légales* e as CGV).
 - [ ] Revisão jurídica das CGV (`/conditions-generales`), Política de Confidentialité e Mentions légales
       (textos em `frontend/lib/legal.ts`, francês + 5 traduções).
-- [ ] O sistema **não envia e-mails** (confirmação/voucher); a comunicação é por WhatsApp/telefone.
+- [ ] E-mails ligados (Resend com domínio verificado) e e-mail de contato preenchido no painel; um pagamento
+      de teste chega ao cliente e à empresa.
 - [ ] Domínio com HTTPS e cabeçalhos (confira em securityheaders.com).
 - [ ] Backups da Supabase confirmados, com um teste de restauração feito.
 
@@ -133,6 +159,5 @@ RLS ativo e forçado em todas as tabelas do Supabase (o papel da aplicação nã
 o esquema), dados de cartão nunca passam pelo servidor (SumUp, escopo PCI SAQ A), upload de imagem
 validado pelo conteúdo do arquivo (não pela extensão), e auditoria de toda ação administrativa.
 
-**Riscos conhecidos:** o Next.js 14.2.x tem avisos públicos de segurança (mitigados no que o app usa;
-recomenda-se atualizar a versão com testes antes ou logo após o lançamento); não há e-mail transacional;
-os textos jurídicos precisam de revisão de um advogado antes do lançamento.
+**Riscos conhecidos:** os textos jurídicos precisam de revisão de um advogado antes do lançamento. Rode
+`npm audit --omit=dev` de tempos em tempos e atualize o Next.js quando sair correção de segurança.

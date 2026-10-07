@@ -15,7 +15,7 @@ beforeEach(async () => {
   await consulta("delete from limites_taxa");
 });
 
-const ctx = { params: {} };
+const ctx = { params: Promise.resolve({}) };
 
 describe("preco das rotas", () => {
   it("usa o preco fixo por padrao", async () => {

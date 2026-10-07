@@ -35,6 +35,24 @@ describe("criacao do checkout na SumUp (somente no servidor)", () => {
     process.env.SITE_URL = "http://localhost:3000";
   });
 
+  it("expira o checkout junto com a retencao do veiculo e nao envia campos fora da API atual", async () => {
+    const antes = Date.now();
+    await criarCheckoutSumup({ referencia: "R", valorCentavos: 6500, descricao: "d" });
+    const corpo = JSON.parse(chamadas[0].init.body as string);
+    expect(corpo).not.toHaveProperty("pay_to_email");
+    const expira = new Date(corpo.valid_until).getTime();
+    // Padrao: HOLD_PENDENTE_MINUTOS = 30.
+    expect(expira - antes).toBeGreaterThanOrEqual(30 * 60_000 - 1000);
+    expect(expira - antes).toBeLessThanOrEqual(30 * 60_000 + 5000);
+  });
+
+  it("sem merchant code nao chama a SumUp e devolve PAGAMENTO_INDISPONIVEL", async () => {
+    process.env.SUMUP_MERCHANT_CODE = "";
+    const erro = await criarCheckoutSumup({ referencia: "R", valorCentavos: 100, descricao: "d" }).catch((e) => e);
+    expect(erro).toMatchObject({ status: 503, codigo: "PAGAMENTO_INDISPONIVEL" });
+    expect(chamadas).toHaveLength(0);
+  });
+
   it("em localhost nao envia return_url (a SumUp nao alcanca endereco local)", async () => {
     process.env.SITE_URL = "http://localhost:3000";
     await criarCheckoutSumup({ referencia: "R", valorCentavos: 6500, descricao: "d" });

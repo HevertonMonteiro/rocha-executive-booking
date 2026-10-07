@@ -6,6 +6,7 @@ import { ErroHttp } from "../http";
 import { sinalPercentual } from "./configuracoes";
 import { config } from "../config";
 import { consultarCheckoutSumup } from "./sumup";
+import { notificarPagamentoConfirmado } from "./notificacoes";
 
 export type MetodoPagamento = "sumup_cartao" | "dinheiro" | "transferencia" | "outro";
 export type TipoPagamento = "sinal" | "integral" | "restante";
@@ -145,7 +146,7 @@ export async function confirmarCheckoutPago(
     : await consultarCheckoutSumup(checkoutId);
   if (!verificado || !verificado.pago || verificado.moeda !== "EUR") return { resultado: "nao_pago" };
 
-  return transacao(async (tx) => {
+  const resultado = await transacao(async (tx) => {
     // Somente uma execucao "ganha" a transicao pendente -> pago.
     const marcado = await tx.query("update checkouts_sumup set status = 'pago' where id = $1 and status = 'pendente' returning id", [
       checkout.id,
@@ -173,4 +174,8 @@ export async function confirmarCheckoutPago(
     });
     return { resultado: "registrado", reservaId: checkout.reserva_id, valorCentavos: verificado.valorCentavos } as const;
   });
+  // Fora da transacao (o pagamento ja esta gravado) e aguardado: em funcao serverless
+  // o que roda depois da resposta pode ser interrompido. So a execucao que registrou envia.
+  if (resultado.resultado === "registrado") await notificarPagamentoConfirmado(resultado.reservaId, resultado.valorCentavos);
+  return resultado;
 }

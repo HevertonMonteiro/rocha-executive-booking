@@ -14,7 +14,7 @@ import { GET as statusGET } from "@/app/api/reservas/status/route";
 import { criarCheckoutSumup, consultarCheckoutSumup } from "@/server/servicos/sumup";
 import { dadosReserva, futuro, prepararBanco, requisicao } from "./ajuda";
 
-const ctx = { params: {} };
+const ctx = { params: Promise.resolve({}) };
 let contador = 0;
 let dia = 100;
 
@@ -53,7 +53,10 @@ describe("pagamento: sinal de 20% ou integral", () => {
     expect(c1).toMatchObject({ tipo: "sinal", valor: "13.00" });
 
     sumupPago(1300, "tx-a1");
-    await webhook(c1.checkout_id);
+    const resposta = await webhook(c1.checkout_id);
+    // A SumUp exige 2xx com corpo vazio.
+    expect(resposta.status).toBe(204);
+    expect(await resposta.text()).toBe("");
     expect(await estado(codigo)).toMatchObject({ status_pagamento: "parcial", pago: "13.00", saldo: "52.00" });
 
     const c2 = await checkout(codigo, "sinal"); // ja pagou sinal: so resta o saldo
@@ -100,13 +103,13 @@ describe("webhook da SumUp", () => {
     const c = await checkout(codigo, "integral");
     vi.mocked(consultarCheckoutSumup).mockResolvedValue({ pago: false, valorCentavos: 6500, moeda: "EUR", transacaoId: null });
     const res = await webhook(c.checkout_id);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     expect(await estado(codigo)).toMatchObject({ status_pagamento: "pendente", pago: "0.00" });
   });
 
-  it("checkout desconhecido e ignorado (200) e o evento fica registrado", async () => {
+  it("checkout desconhecido e ignorado (204) e o evento fica registrado", async () => {
     const res = await webhook("chk_inexistente");
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     const [{ n }] = await consulta("select count(*)::int n from pagamento_logs");
     expect(n).toBeGreaterThan(0);
   });

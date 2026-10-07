@@ -43,7 +43,7 @@ beforeAll(async () => {
   await consulta("insert into admins (email, senha_hash) values ($1, $2)", ["dono@rocha.fr", await hashSenha(SENHA)]);
 });
 
-const ctx = (params: Record<string, string> = {}) => ({ params });
+const ctx = (params: Record<string, string> = {}) => ({ params: Promise.resolve(params) });
 const admin = (caminho: string, corpo?: unknown, metodo?: string) =>
   requisicao(caminho, { corpo, metodo, cookie, origem: ORIGEM });
 

@@ -35,6 +35,9 @@ export interface Contexto {
   admin: AdminAtual;
 }
 
+/** Segundo argumento dos handlers de rota (no Next 15+ os params chegam como Promise). */
+type RotaDinamica = { params: Promise<Record<string, string>> };
+
 type Handler = (ctx: Contexto) => Promise<Response | unknown> | Response | unknown;
 
 const SEM_CACHE = { "Cache-Control": "no-store" };
@@ -131,11 +134,12 @@ export function publica(
   handler: (ctx: Omit<Contexto, "admin">) => Promise<Response | unknown> | Response | unknown,
   opcoes: { limite?: { nome: string; max: number; janelaSeg: number } } = {}
 ) {
-  return async (req: NextRequest, { params }: { params: Record<string, string> } = { params: {} }) => {
+  return async (req: NextRequest, rota: RotaDinamica = { params: Promise.resolve({}) }) => {
     try {
       garantirConfig();
       const ip = ipDe(req);
       if (opcoes.limite) await limitar(`pub:${opcoes.limite.nome}:${ip}`, opcoes.limite.max, opcoes.limite.janelaSeg);
+      const params = await rota.params;
       return paraResposta(await handler({ req, params, ip }));
     } catch (e) {
       return tratarErro(e);
@@ -188,7 +192,7 @@ async function carregarAdmin(req: NextRequest): Promise<AdminAtual> {
 }
 
 export function comAdmin(handler: Handler, opcoes: { permitirSemMfa?: boolean } = {}) {
-  return async (req: NextRequest, { params }: { params: Record<string, string> } = { params: {} }) => {
+  return async (req: NextRequest, rota: RotaDinamica = { params: Promise.resolve({}) }) => {
     const ip = ipDe(req);
     let admin: AdminAtual | null = null;
     let resposta: Response;
@@ -200,6 +204,7 @@ export function comAdmin(handler: Handler, opcoes: { permitirSemMfa?: boolean } 
       if (!opcoes.permitirSemMfa && config.exigirMfa && !(admin.mfaAtivo && admin.mfaSessao)) {
         throw new ErroHttp(403, "Ative a autenticacao em dois fatores para continuar.", "MFA_OBRIGATORIO");
       }
+      const params = await rota.params;
       resposta = paraResposta(await handler({ req, params, ip, admin }));
       // Sessao deslizante: cada uso reinicia os 30 minutos de inatividade (sem passar do teto absoluto).
       const comCookie = resposta instanceof NextResponse ? resposta : new NextResponse(resposta.body, resposta);

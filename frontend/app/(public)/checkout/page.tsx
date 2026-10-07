@@ -84,6 +84,8 @@ function CheckoutContent() {
           alvoId: "sumup-widget",
           checkoutId: pagamento.checkout_id,
           idioma: idioma.langKey,
+          valor: pagamento.valor,
+          email,
           onResultado: async (tipo) => {
             if (tipo === "success") {
               // Nao espera o webhook: confirma direto com a SumUp para a tela ja mostrar o status.
